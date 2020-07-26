@@ -8,11 +8,10 @@ import (
 
 var client *ClientInterface
 
-func clientRec(bytes []byte, len int) {
-	fmt.Println("len=", len)
+func clientRec(bytes []byte) {
+	fmt.Println("len=", len(bytes))
 	fmt.Println(string(bytes))
-	recbyte := bytes[:len]
-	client.Send(recbyte)
+	client.Send(bytes)
 }
 
 func TestClient(t *testing.T) {

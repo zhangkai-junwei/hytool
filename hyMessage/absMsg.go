@@ -1,31 +1,31 @@
 package hyMessage
 
-type absMessage struct {
-	Cmd     byte
-	MsgType byte
-	MsgId   byte
+type AbsMessage struct {
+	MsgType    byte
+	MsgId      byte
+	needReturn bool
 }
 
-func (m *absMessage) GetCmd() byte {
-	return m.Cmd
-}
-
-func (m *absMessage) SetCmd(cmd byte) {
-	m.Cmd = cmd
-}
-
-func (m *absMessage) GetMsgType() byte {
+func (m *AbsMessage) GetMsgType() byte {
 	return m.MsgType
 }
 
-func (m *absMessage) SetMsgType(msgType byte) {
+func (m *AbsMessage) SetMsgType(msgType byte) {
 	m.MsgType = msgType
 }
 
-func (m *absMessage) GetMsgId() byte {
+func (m *AbsMessage) GetNeedReturn() bool {
+	return m.needReturn
+}
+
+func (m *AbsMessage) SetNeedReturn(needReturn bool) {
+	m.needReturn = needReturn
+}
+
+func (m *AbsMessage) GetMsgId() byte {
 	return m.MsgId
 }
 
-func (m *absMessage) SetMsgId(msgId byte) {
+func (m *AbsMessage) SetMsgId(msgId byte) {
 	m.MsgId = msgId
 }

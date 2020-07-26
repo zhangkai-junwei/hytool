@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type Callback func(bytes []byte, len int)
+type Callback func(bytes []byte)
 
 type ClientInterface struct {
 	host             string
@@ -79,6 +79,7 @@ func (self *ClientInterface) routine() {
 		n, err = self.conn.Read(buf)
 		if err != nil {
 			if strings.Contains(err.Error(), "timeout") {
+				self.clientRec(nil)
 				continue
 			}
 			self.conn.Close()
@@ -94,7 +95,7 @@ func (self *ClientInterface) routine() {
 			continue
 		}
 
-		self.clientRec(buf, n)
+		self.clientRec(buf[:n])
 	}
 	self.waitGrountineEnd.Done()
 }
