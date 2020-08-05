@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
 type Callback func(conn net.Conn, ch chan []byte)
 
 type ServerInterface struct {
-	bufSize  int
-	ch       chan []byte
-	progress Callback
-	listen   net.Listener
-	ctx      context.Context
-	cancel   context.CancelFunc
-	wg       sync.WaitGroup
+	bufSize    int
+	chSize     int
+	ch         chan []byte
+	internalMs int
+	progress   Callback
+	listen     net.Listener
+	ctx        context.Context
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
 }
 
 func (self *ServerInterface) Start(port string, pCallback Callback) (err error) {
@@ -26,7 +29,8 @@ func (self *ServerInterface) Start(port string, pCallback Callback) (err error) 
 	}
 	self.ctx, self.cancel = context.WithCancel(context.Background())
 	self.bufSize = 1024
-	self.ch = make(chan []byte, self.bufSize)
+	self.chSize = 10
+	self.ch = make(chan []byte, self.chSize)
 	self.progress = pCallback
 	self.wg.Add(1)
 	go self.listenRoutine(self.ctx)
@@ -35,6 +39,26 @@ func (self *ServerInterface) Start(port string, pCallback Callback) (err error) 
 
 func (self *ServerInterface) SetBufSize(size int) {
 	self.bufSize = size
+}
+
+func (self *ServerInterface) GetBufSize() int {
+	return self.bufSize
+}
+
+func (self *ServerInterface) SetReadTimeout(ms int) {
+	self.internalMs = ms
+}
+
+func (self *ServerInterface) GetReadTimeout() int {
+	return self.internalMs
+}
+
+func (self *ServerInterface) SetChSize(chSize int) {
+	self.chSize = chSize
+}
+
+func (self *ServerInterface) GetChSize() int {
+	return self.chSize
 }
 
 func (self *ServerInterface) listenRoutine(ctx context.Context) {
@@ -52,9 +76,17 @@ func (self *ServerInterface) listenRoutine(ctx context.Context) {
 
 func (self *ServerInterface) recRoutine(conn net.Conn, ctx context.Context) {
 	bytes := make([]byte, self.bufSize)
+	timeout := time.Millisecond * time.Duration(self.internalMs)
 	for {
+		conn.SetReadDeadline(time.Now().Add(timeout))
 		n, err := conn.Read(bytes)
 		if err != nil {
+			select {
+			case <-ctx.Done():
+				goto end
+			default:
+
+			}
 			continue
 		}
 

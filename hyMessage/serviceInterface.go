@@ -2,33 +2,40 @@ package hyMessage
 
 import (
 	"errors"
+	"fmt"
+	"hyTool/message"
 	"hyTool/tcpClient"
+	"reflect"
 )
 
-type Callback func(bytes []byte)
+type Callback func(msg interface{})
 
-type service struct {
+type Service struct {
 	msgFun      map[byte]Callback
 	client      *tcpClient.ClientInterface
+	msgTool     message.MessageTool
 	bytes       []byte
 	needRecFlag bool
 	recFlag     bool
 	timeoutFlag bool
 }
 
-func (m *service) clientRec(bytes []byte) {
-	if m.needRecFlag {
-		m.needRecFlag = false
-		if bytes != nil {
-			m.recFlag = true
-			m.bytes = bytes
-		} else {
-			m.timeoutFlag = true
+func (m *Service) clientRec(bytes []byte) {
+	var msg interface{}
+	respBuf, err := decode(bytes)
+	if err != nil {
+		return
+	}
+
+	if callBack, ok := m.msgFun[respBuf[1]]; ok {
+		err := m.msgTool.RecMessage(msg, respBuf[4:])
+		if err != nil {
+			callBack(msg)
 		}
 	}
 }
 
-func (m *service) Start(addr string) error {
+func (m *Service) Start(addr string) error {
 	m.client = &tcpClient.ClientInterface{}
 	err := m.client.Start(addr, m.clientRec)
 	if err != nil {
@@ -36,30 +43,77 @@ func (m *service) Start(addr string) error {
 	}
 	m.needRecFlag = false
 	m.msgFun = make(map[byte]Callback, 10)
-	return nil
-}
-
-func (m *service) Subscription(msgType byte, pCallback Callback) error {
-
-	bytes := encode(0x01, []byte{msgType})
-	_, err := m.client.Send(bytes)
+	m.msgTool, err = message.CreateMessageTool("json")
 	if err != nil {
 		return err
 	}
-	m.timeoutFlag = false
-	m.recFlag = false
-	m.needRecFlag = true
-	for {
-		if m.timeoutFlag {
-			return errors.New("timeout")
-		}
-		if m.recFlag {
-
-		}
-	}
 	return nil
 }
 
-func (m *service) Publish(msg interface{}) error {
+func (m *Service) Subscription(msgType byte, pCallback Callback) error {
+
+	bytes := encode(0x01, msgType, nil)
+	buf, err := m.client.SendAndWaitResp(bytes)
+	if err != nil {
+		return err
+	}
+	respBuf, err := decode(buf)
+	if err != nil {
+		return err
+	}
+	if respBuf[0] == 0 {
+		m.msgFun[msgType] = pCallback
+		return nil
+	} else {
+		return errors.New("Subscription failed")
+	}
+}
+
+func (m *Service) Publish(msg interface{}) error {
+	dataValue := reflect.ValueOf(msg)
+
+	dataValue = dataValue.Elem()
+	msgType := dataValue.FieldByName("MsgType").Uint()
+	fmt.Println("msgType=", msgType)
+
+	buf, err := m.msgTool.SendMessage(msg)
+	if err != nil {
+		return err
+	}
+	sendBuf := encode(0x02, byte(msgType), buf)
+	_, err = m.client.Send(sendBuf)
+	return err
+}
+
+func (m *Service) ExchangeMsg(reqMsq, respMsg interface{}) error {
+	dataValue := reflect.ValueOf(reqMsq)
+
+	dataValue = dataValue.Elem()
+	msgType := dataValue.FieldByName("MsgType").Uint()
+	fmt.Println("msgType=", msgType)
+
+	bytes := encode(0x01, byte(msgType), nil)
+	buf, err := m.client.SendAndWaitResp(bytes)
+	if err != nil {
+		return err
+	}
+	respBuf, err := decode(buf)
+	if err != nil {
+		return err
+	}
+	if respBuf[0] != 0 {
+		return errors.New("Subscription failed")
+	}
+
+	buf1, err := m.msgTool.SendMessage(reqMsq)
+	if err != nil {
+		return err
+	}
+	sendBuf := encode(0x02, byte(msgType), buf1)
+	bytes, err = m.client.SendAndWaitResp(sendBuf)
+	err = m.msgTool.RecMessage(respMsg, bytes[4:])
+	if err != nil {
+		return err
+	}
 	return nil
 }
