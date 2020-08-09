@@ -11,13 +11,9 @@ import (
 type Callback func(msg interface{})
 
 type Service struct {
-	msgFun      map[byte]Callback
-	client      *tcpClient.ClientInterface
-	msgTool     message.MessageTool
-	bytes       []byte
-	needRecFlag bool
-	recFlag     bool
-	timeoutFlag bool
+	msgFun  map[byte]Callback
+	client  *tcpClient.ClientInterface
+	msgTool message.MessageTool
 }
 
 func (m *Service) clientRec(bytes []byte) {
@@ -41,7 +37,6 @@ func (m *Service) Start(addr string) error {
 	if err != nil {
 		return err
 	}
-	m.needRecFlag = false
 	m.msgFun = make(map[byte]Callback, 10)
 	m.msgTool, err = message.CreateMessageTool("json")
 	if err != nil {
@@ -85,7 +80,8 @@ func (m *Service) Publish(msg interface{}) error {
 	return err
 }
 
-func (m *Service) ExchangeMsg(reqMsq, respMsg interface{}) error {
+func (m *Service) ExchangeMsg(reqMsq, respMsg interface{}, timeOutMs int) error {
+	m.client.SetInternalMs(timeOutMs)
 	dataValue := reflect.ValueOf(reqMsq)
 
 	dataValue = dataValue.Elem()
