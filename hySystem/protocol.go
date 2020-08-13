@@ -15,24 +15,15 @@ import (
 	"hyTool/util"
 )
 
-type ServerCallback func([]byte)
-
 type Protocol struct {
-	inMsgList map[byte]ServerCallback
-}
-
-func (m *Protocol) RegisterInMsg(cmd byte, fun ServerCallback) {
-	m.inMsgList[cmd] = fun
+	inMsgList map[byte][]byte
 }
 
 func (m *Protocol) DecodeMsg(bytes []byte) ([]byte, error) {
 	if bytes[0] != 0x55 || bytes[1] != 0xAA {
 		return nil, errors.New("data frame err")
 	}
-	if bytes[2] != 0 {
-		return nil, errors.New("return data err")
-	}
-	length := uint16(bytes[4] | (bytes[5] << 8))
+	length := uint16(bytes[4]) | (uint16(bytes[5]) << 8)
 
 	recLen := len(bytes)
 	if uint16(recLen) < (length + 7) {
@@ -42,7 +33,7 @@ func (m *Protocol) DecodeMsg(bytes []byte) ([]byte, error) {
 	if xor != bytes[length+6] {
 		return nil, errors.New("xor is error")
 	}
-	return bytes[2 : length+6], nil
+	return bytes[:length+6], nil
 }
 
 func (m *Protocol) EncodeMsg(cmd byte, msgType byte, bytes []byte) []byte {

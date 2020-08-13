@@ -2,15 +2,30 @@ package tcpServer
 
 import (
 	"fmt"
+	"io"
 	"net"
+	"strings"
 	"testing"
 	"time"
 )
 
-func recData(conn net.Conn, ch chan []byte) {
-	bytes := <-ch
-	fmt.Println("len=", len(bytes))
-	conn.Write(bytes)
+func recData(conn net.Conn) {
+	for {
+		bytes := make([]byte, 10)
+		n, err := ReadInTime(conn, bytes, 1000)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			if strings.Contains(err.Error(), "i/o timeout") {
+				continue
+			}
+			fmt.Println(err)
+			break
+		}
+		conn.Write(bytes[:n])
+	}
+
 }
 
 func TestClient(t *testing.T) {

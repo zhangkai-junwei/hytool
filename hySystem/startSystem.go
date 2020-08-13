@@ -25,7 +25,10 @@ func runAllApp() {
 func runApp(path string) {
 	for {
 		cmd := exec.Command(path)
-		cmd.Run()
+		err := cmd.Run()
+		if err != nil {
+			break
+		}
 		fmt.Println("./" + path)
 		time.Sleep(5 * time.Second)
 	}
