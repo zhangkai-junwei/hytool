@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"hyTool/message"
-	"hyTool/tcpClient"
+	"hyTool/tcpClientEx"
 	"reflect"
 )
 
@@ -12,7 +12,7 @@ type Callback func(msg interface{})
 
 type Service struct {
 	msgFun  map[byte]Callback
-	client  *tcpClient.ClientInterface
+	client  *tcpClientEx.ClientInterface
 	msgTool message.MessageTool
 }
 
@@ -32,7 +32,7 @@ func (m *Service) clientRec(bytes []byte) {
 }
 
 func (m *Service) Start(addr string) error {
-	m.client = &tcpClient.ClientInterface{}
+	m.client = &tcpClientEx.ClientInterface{}
 	err := m.client.Start(addr, m.clientRec)
 	if err != nil {
 		return err
