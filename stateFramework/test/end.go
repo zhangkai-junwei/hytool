@@ -5,12 +5,8 @@ import "fmt"
 type endState struct {
 }
 
-func (m *endState) OnEntryOnce() {
+func (m *endState) OnEntry() {
 	fmt.Println("end OnEntryOnce")
-}
-
-func (m *endState) OnEntryCircle() {
-	fmt.Println("end OnEntryCircle")
 }
 
 func (m *endState) OnExit() {

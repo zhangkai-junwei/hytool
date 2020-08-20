@@ -5,12 +5,8 @@ import "fmt"
 type idleState struct {
 }
 
-func (m *idleState) OnEntryOnce() {
+func (m *idleState) OnEntry() {
 	fmt.Println("idle OnEntryOnce")
-}
-
-func (m *idleState) OnEntryCircle() {
-	fmt.Println("idle OnEntryCircle")
 }
 
 func (m *idleState) OnExit() {

@@ -16,7 +16,7 @@ func TestState(t *testing.T) {
 	s.RegisterState("idle", idle)
 	s.RegisterState("busy", busy)
 	s.RegisterState("end", end)
-	s.SetInterval(100)
+
 	s.StartStateMachine("idle")
 
 	for {
